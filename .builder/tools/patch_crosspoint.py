@@ -28,13 +28,13 @@ def apply(repo: Path, overlay: Path) -> None:
         if not p.is_file():
             raise PatchError(f"Required upstream file missing: {p}")
 
-    ensure_absent(menu_h, "TRANSLATE")
-    ensure_absent(reader_cpp, "openMaxTranslate()")
+    ensure_absent(menu_h, "TRANSLATE_PAGE")
+    ensure_absent(reader_cpp, "openMaxTranslateChapter()")
 
     replace_once(
         menu_h,
         "    DELETE_CACHE,\n    DICTIONARY\n",
-        "    DELETE_CACHE,\n    DICTIONARY,\n    TRANSLATE\n",
+        "    DELETE_CACHE,\n    DICTIONARY,\n    TRANSLATE_PAGE,\n    TRANSLATE_CHAPTER\n",
         "menu enum",
     )
     replace_once(
@@ -46,7 +46,7 @@ def apply(repo: Path, overlay: Path) -> None:
     replace_once(
         menu_h,
         "  static constexpr size_t MAX_MENU_ITEMS = 16;\n",
-        "  static constexpr size_t MAX_MENU_ITEMS = 17;\n",
+        "  static constexpr size_t MAX_MENU_ITEMS = 18;\n",
         "menu capacity",
     )
 
@@ -60,28 +60,32 @@ def apply(repo: Path, overlay: Path) -> None:
         menu_cpp,
         "  items.push_back({MenuAction::DICTIONARY, StrId::STR_LOOKUP});\n",
         "  items.push_back({MenuAction::DICTIONARY, StrId::STR_LOOKUP});\n"
-        "  items.push_back({MenuAction::TRANSLATE, StrId::STR_LOOKUP, \"Translate\"});\n",
-        "translate menu insertion",
+        "  items.push_back({MenuAction::TRANSLATE_PAGE, StrId::STR_LOOKUP, \"Translate Page\"});\n"
+        "  items.push_back({MenuAction::TRANSLATE_CHAPTER, StrId::STR_LOOKUP, \"Translate Chapter\"});\n",
+        "translation menu insertion",
     )
 
     replace_once(
         reader_cpp,
         '#include "MappedInputManager.h"\n',
         '#include "MappedInputManager.h"\n'
+        '#include "max/MaxChapterTranslationActivity.h"\n'
         '#include "max/MaxPageText.h"\n'
         '#include "max/MaxTranslateActivity.h"\n',
         "reader MAX includes",
     )
+
     replace_once(
         reader_h,
         "  void openDictionaryWordSelect();\n",
         "  void openDictionaryWordSelect();\n"
-        "  void openMaxTranslate();\n",
-        "reader method declaration",
+        "  void openMaxTranslatePage();\n"
+        "  void openMaxTranslateChapter();\n",
+        "reader MAX method declarations",
     )
 
     anchor = "void EpubReaderActivity::openDictionaryWordSelect() {\n"
-    impl = '''void EpubReaderActivity::openMaxTranslate() {
+    impl = '''void EpubReaderActivity::openMaxTranslatePage() {
   if (!section || !epub) {
     requestUpdate();
     return;
@@ -115,8 +119,20 @@ def apply(repo: Path, overlay: Path) -> None:
       });
 }
 
+void EpubReaderActivity::openMaxTranslateChapter() {
+  if (!section || !epub) {
+    requestUpdate();
+    return;
+  }
+
+  startActivityForResult(
+      std::make_unique<MaxChapterTranslationActivity>(
+          renderer, mappedInput, epub->getPath(), currentSpineIndex, section.get()),
+      [this](const ActivityResult&) { requestUpdate(); });
+}
+
 '''
-    replace_once(reader_cpp, anchor, impl + anchor, "reader openMaxTranslate implementation")
+    replace_once(reader_cpp, anchor, impl + anchor, "reader MAX methods")
 
     replace_once(
         reader_cpp,
@@ -128,11 +144,15 @@ def apply(repo: Path, overlay: Path) -> None:
         "      openDictionaryWordSelect();\n"
         "      break;\n"
         "    }\n"
-        "    case EpubReaderMenuActivity::MenuAction::TRANSLATE: {\n"
-        "      openMaxTranslate();\n"
+        "    case EpubReaderMenuActivity::MenuAction::TRANSLATE_PAGE: {\n"
+        "      openMaxTranslatePage();\n"
+        "      break;\n"
+        "    }\n"
+        "    case EpubReaderMenuActivity::MenuAction::TRANSLATE_CHAPTER: {\n"
+        "      openMaxTranslateChapter();\n"
         "      break;\n"
         "    }\n",
-        "reader translate switch",
+        "reader translation switch",
     )
 
     replace_once(
@@ -147,7 +167,7 @@ def apply(repo: Path, overlay: Path) -> None:
     if dest.exists():
         raise PatchError(f"{dest} already exists; refusing to overwrite")
     shutil.copytree(overlay / "src/max", dest)
-    print("MAX patch applied safely.")
+    print("CrossPoint MAX v1.2-dev patch applied safely.")
 
 def main() -> int:
     ap = argparse.ArgumentParser()

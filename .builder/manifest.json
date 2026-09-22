@@ -1,10 +1,26 @@
 {
   "package": "CrossPoint MAX GitHub One-Click",
-  "version": "1.1-dev",
+  "version": "1.2-dev",
+  "stage": "chapter translation",
   "upstream_release": "v1.6.0",
   "upstream_commit": "54337e6d73fc628f4ba523ddc89a743ca8c6e4c5",
   "build_environment": "gh_release",
-  "expected_output": "CrossPoint_MAX_X4_v1.1-dev.bin",
+  "expected_output": "CrossPoint_MAX_X4_v1.2-dev.bin",
+  "implemented": [
+    "page translation",
+    "study mode page flow",
+    "microSD page cache",
+    "chapter translation page-by-page",
+    "chapter progress",
+    "cancel with persistent checkpoint",
+    "resume chapter translation",
+    "skip pages already present in cache"
+  ],
+  "constraints": [
+    "chapter job starts only after current chapter pagination/index cache is complete",
+    "whole-book translation is not implemented yet"
+  ],
+  "automatic_build_on_push": true,
   "automatic_flash": false,
   "automatic_erase": false,
   "physical_device_verified": false

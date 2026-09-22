@@ -1,75 +1,53 @@
-CROSSPOINT MAX X4 — GITHUB ONE-CLICK BUILD
-==========================================
+CROSSPOINT MAX X4 — UPDATE v1.2-dev
+===================================
 
-CEL
----
-Ta paczka ma zrobić jedną rzecz:
-GitHub -> Actions -> Run workflow -> pobierz gotowy BIN -> użyj go jako Custom .bin.
-
-NIE musisz instalować PlatformIO na swoim komputerze.
-
-KROKI
------
-1. Rozpakuj ten ZIP.
-2. Załóż puste repozytorium na GitHubie.
-3. Wgraj CAŁĄ zawartość rozpakowanego folderu do repozytorium.
-   Ważne: musi znaleźć się także folder ".github".
-4. Otwórz zakładkę:
-      Actions
-5. Po lewej wybierz:
-      BUILD READY BIN FOR X4
-6. Kliknij:
-      Run workflow
-      Run workflow
-7. Poczekaj aż zadanie będzie zielone (Success).
-8. Na dole strony uruchomionego workflow pojawi się:
-      Artifacts
-      CrossPoint_MAX_X4_READY_TO_FLASH
-9. Pobierz artifact ZIP i rozpakuj.
-10. Interesuje Cię:
-      CrossPoint_MAX_X4_v1.1-dev.bin
-
-DOPIERO TEN PLIK jest wynikiem realnej kompilacji.
-
-FLASH
------
-Na stronie:
-https://crosspointreader.com/#flash-tools
-
-wybierz X4 -> Custom .bin i wskaż:
-CrossPoint_MAX_X4_v1.1-dev.bin
+TEN ETAP DODAJE
+---------------
+- Translate Page (z v1.1),
+- Translate Chapter,
+- tłumaczenie rozdziału strona po stronie,
+- ekran postępu,
+- anulowanie przyciskiem BACK,
+- checkpoint na microSD po każdej stronie,
+- wznowienie po ponownym wejściu w Translate Chapter,
+- pomijanie stron już obecnych w cache.
 
 WAŻNE
 -----
-Przed pierwszym flashowaniem zachowaj działający oficjalny CrossPoint/update.bin.
+Translate Chapter startuje dopiero po zakończeniu indeksowania/paginacji bieżącego
+rozdziału. Jeżeli CrossPoint nadal buduje rozdział częściowo, MAX pokaże komunikat
+i nie będzie zgadywał brakujących stron.
 
-Workflow:
-- pobiera CrossPoint 1.6.0 z oficjalnego repo,
-- przełącza na dokładny commit 54337e6d73fc628f4ba523ddc89a743ca8c6e4c5,
-- pobiera submoduły,
-- sprawdza platformio.ini i partitions.csv,
-- nakłada MAX,
-- buduje oficjalnym środowiskiem gh_release,
-- sprawdza, czy wynik jest obrazem ESP,
-- sprawdza zakres względem potwierdzonego flash size/offset,
-- liczy SHA-256,
-- NICZEGO nie flashuje.
-
-Jeśli workflow jest czerwony (Failed):
-NIE WGRYWAJ NICZEGO.
-Prześlij do ChatGPT screenshot/log z czerwonego kroku "Build CrossPoint MAX X4".
-
-STATUS FUNKCJI v1.1-dev
------------------------
-Jest:
-- tłumaczenie aktualnej strony,
-- cache microSD,
-- Translation Gateway,
-- prosty Study Mode: Original / Next.
-
-Jeszcze nie ma:
+NIE MA JESZCZE
+--------------
+- tłumaczenia całej książki,
 - pełnej Biblioteki MAX,
-- tłumaczenia całego rozdziału,
-- tłumaczenia całej książki z resume.
+- finalnego Home MAX.
 
-To jest DEV build i wymaga testu na fizycznym X4.
+JAK WGRAC v1.2 DO TEGO SAMEGO REPO
+----------------------------------
+1. Rozpakuj ten ZIP.
+2. Otwórz lokalny folder CrossPoint-MAX-X4, który masz już w GitHub Desktop.
+3. Skopiuj CAŁĄ zawartość tej paczki do repo i potwierdź nadpisanie.
+4. Wróć do GitHub Desktop.
+5. W Summary wpisz:
+      CrossPoint MAX v1.2-dev chapter translation
+6. Kliknij Commit to main.
+7. Kliknij Push origin.
+
+OD v1.2 BUILD STARTUJE AUTOMATYCZNIE PO PUSH.
+Ręczny Run workflow nadal zostaje jako opcja zapasowa.
+
+Po Push:
+GitHub -> Actions -> BUILD READY BIN FOR X4
+
+Po zielonym Success pobierz:
+CrossPoint_MAX_X4_READY_TO_FLASH
+
+W środku ma być:
+CrossPoint_MAX_X4_v1.2-dev.bin
+CrossPoint_MAX_X4_v1.2-dev.bin.sha256.txt
+build_manifest.json
+source_report.json
+
+Jeśli workflow jest czerwony, NIE FLASHUJ. Podeślij screenshot/log czerwonego kroku.
