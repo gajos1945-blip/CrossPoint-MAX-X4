@@ -1,5 +1,17 @@
-CROSSPOINT MAX X4 — UPDATE v1.5-dev
-===================================
+CROSSPOINT MAX X4 — v1.5-dev FIX1
+=================================
+
+Ta paczka naprawia pierwszy blad kompilacji v1.5-dev.
+
+GitHub Actions zatrzymal sie w MaxLibraryActivity.cpp przy:
+  listIconFor(UITheme::getFileIcon(...), 32)
+
+Przyczyna:
+  listIconFor() jest deklarowane w components/UiAppHelpers.h,
+  a v1.5-dev uzywalo tej funkcji bez dolaczenia tego naglowka.
+
+FIX1 dodaje brakujacy include. Nie zmienia logiki flash ani partycji.
+
 
 TEN ETAP DOMYKA GLOWNE FUNKCJE MAX PRZED RELEASE CANDIDATE.
 
