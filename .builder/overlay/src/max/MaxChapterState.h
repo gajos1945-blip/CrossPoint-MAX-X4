@@ -7,6 +7,7 @@ struct MaxChapterCheckpoint {
   int totalPages = 0;
   std::string source;
   std::string target;
+  std::string layoutKey;
   std::string status;
 };
 

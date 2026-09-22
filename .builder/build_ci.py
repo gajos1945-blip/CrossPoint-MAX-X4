@@ -18,7 +18,7 @@ from bin_inspector import inspect_bin
 UPSTREAM = "https://github.com/crosspoint-reader/crosspoint-reader.git"
 COMMIT = "54337e6d73fc628f4ba523ddc89a743ca8c6e4c5"
 ENV = "gh_release"
-RELEASE_NAME = "CrossPoint_MAX_X4_v1.2-dev.bin"
+RELEASE_NAME = "CrossPoint_MAX_X4_v1.3-dev.bin"
 
 class BuildError(RuntimeError):
     pass
@@ -102,6 +102,19 @@ def main() -> int:
     if app_offset + info["size"] > flash_bytes:
         raise BuildError("Application image exceeds confirmed flash range")
 
+    app_partition = None
+    for part in report.get("partitions", []):
+        if part.get("type") == "app" and part.get("offset") == app_offset:
+            app_partition = part
+            break
+    if not app_partition or app_partition.get("size") is None:
+        raise BuildError("Application partition size UNKNOWN; release blocked")
+    if info["size"] > int(app_partition["size"]):
+        raise BuildError(
+            f"Application image ({info['size']}) exceeds confirmed "
+            f"{app_partition['name']} partition ({app_partition['size']})"
+        )
+
     print("=== 6/7 Create release files ===")
     final_bin = dist / RELEASE_NAME
     shutil.copy2(fw, final_bin)
@@ -112,7 +125,7 @@ def main() -> int:
 
     manifest = {
         "project": "CrossPoint MAX X4",
-        "version": "1.2-dev",
+        "version": "1.3-dev",
         "base_release": "CrossPoint 1.6.0",
         "upstream_commit": COMMIT,
         "platformio_environment": ENV,
@@ -121,6 +134,7 @@ def main() -> int:
         "build_seconds": elapsed,
         "artifact": {**info, "filename": RELEASE_NAME, "sha256": sha},
         "source_facts": report,
+        "application_partition": app_partition,
         "physical_device_verified": False,
         "flash_performed": False,
         "merged_full_flash": False,

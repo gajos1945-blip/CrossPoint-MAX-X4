@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "MaxPageText.h"
+#include "MaxRenderFingerprint.h"
 #include "MaxTranslationCache.h"
 #include "MaxTranslationClient.h"
 #include "fontIds.h"
@@ -17,11 +18,13 @@ constexpr int TOP = 54;
 
 MaxChapterTranslationActivity::MaxChapterTranslationActivity(
     GfxRenderer& renderer, MappedInputManager& mappedInput, std::string bookPath,
-    const int spine, Section* section)
+    const int spine, Section* section, ReaderRenderSpec renderSpec)
     : Activity("MaxChapterTranslate", renderer, mappedInput),
       bookPath(std::move(bookPath)),
       spine(spine),
-      chapterSection(section) {}
+      chapterSection(section),
+      renderSpec(renderSpec),
+      layoutKey(MaxRenderFingerprint::fromSpec(renderSpec)) {}
 
 void MaxChapterTranslationActivity::onEnter() {
   Activity::onEnter();
@@ -63,10 +66,11 @@ bool MaxChapterTranslationActivity::initializeJob() {
   MaxChapterCheckpoint saved;
   const bool hasSaved = MaxChapterState::load(bookPath, spine, config.target, saved);
   if (hasSaved && saved.spine == spine && saved.target == config.target &&
-      saved.totalPages == total && saved.nextPage >= 0 && saved.nextPage <= total &&
-      saved.status != "complete") {
+      saved.layoutKey == layoutKey && saved.totalPages == total &&
+      saved.nextPage >= 0 && saved.nextPage <= total && saved.status != "complete") {
     checkpoint = std::move(saved);
     checkpoint.source = config.source;
+    checkpoint.layoutKey = layoutKey;
     checkpoint.status = "running";
   } else {
     checkpoint.spine = spine;
@@ -74,6 +78,7 @@ bool MaxChapterTranslationActivity::initializeJob() {
     checkpoint.totalPages = total;
     checkpoint.source = config.source;
     checkpoint.target = config.target;
+    checkpoint.layoutKey = layoutKey;
     checkpoint.status = "running";
   }
 
@@ -104,16 +109,6 @@ void MaxChapterTranslationActivity::processOnePage() {
   }
 
   const int pageIndex = checkpoint.nextPage;
-  std::string cached;
-  if (config.cache &&
-      MaxTranslationCache::load(bookPath, spine, pageIndex, config.target, cached)) {
-    cachedThisRun++;
-    checkpoint.nextPage++;
-    persistStatus(checkpoint.nextPage >= checkpoint.totalPages ? "complete" : "running");
-    if (checkpoint.nextPage >= checkpoint.totalPages) state = State::Complete;
-    return;
-  }
-
   auto page = chapterSection->loadPage(pageIndex);
   if (!page) {
     state = State::Error;
@@ -124,23 +119,30 @@ void MaxChapterTranslationActivity::processOnePage() {
 
   const std::string sourceText = MaxPageText::extract(*page);
   if (!sourceText.empty()) {
-    const MaxTranslationResponse response =
-        MaxTranslationClient().translate(config.gateway, config.source, config.target, sourceText);
-    if (!response.ok) {
-      state = State::Error;
-      errorText = "Strona " + std::to_string(pageIndex + 1) + ": " + response.error;
-      persistStatus("error");
-      return;
-    }
-
+    std::string cached;
     if (config.cache &&
-        !MaxTranslationCache::store(bookPath, spine, pageIndex, config.target, response.translation)) {
-      state = State::Error;
-      errorText = "Nie mozna zapisac cache strony " + std::to_string(pageIndex + 1);
-      persistStatus("error");
-      return;
+        MaxTranslationCache::load(bookPath, spine, pageIndex, config.target, sourceText, cached)) {
+      cachedThisRun++;
+    } else {
+      const MaxTranslationResponse response =
+          MaxTranslationClient().translate(config.gateway, config.source, config.target, sourceText);
+      if (!response.ok) {
+        state = State::Error;
+        errorText = "Strona " + std::to_string(pageIndex + 1) + ": " + response.error;
+        persistStatus("error");
+        return;
+      }
+
+      if (config.cache &&
+          !MaxTranslationCache::store(bookPath, spine, pageIndex, config.target,
+                                      sourceText, response.translation)) {
+        state = State::Error;
+        errorText = "Nie mozna zapisac cache strony " + std::to_string(pageIndex + 1);
+        persistStatus("error");
+        return;
+      }
+      translatedThisRun++;
     }
-    translatedThisRun++;
   }
 
   checkpoint.nextPage++;

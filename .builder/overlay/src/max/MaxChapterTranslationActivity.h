@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Epub/ReaderRenderSpec.h>
 #include <Epub/Section.h>
 #include <string>
 
@@ -14,6 +15,8 @@ class MaxChapterTranslationActivity final : public Activity {
   int spine = 0;
   Section* chapterSection = nullptr;
   MaxTranslationConfig config;
+  ReaderRenderSpec renderSpec;
+  std::string layoutKey;
   MaxChapterCheckpoint checkpoint;
 
   State state = State::Starting;
@@ -30,7 +33,8 @@ class MaxChapterTranslationActivity final : public Activity {
 
  public:
   MaxChapterTranslationActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
-                                std::string bookPath, int spine, Section* section);
+                                std::string bookPath, int spine, Section* section,
+                                ReaderRenderSpec renderSpec);
 
   void onEnter() override;
   void loop() override;

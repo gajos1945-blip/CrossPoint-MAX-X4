@@ -1,7 +1,9 @@
 #include "MaxTranslationCache.h"
+
 #include <HalStorage.h>
-#include <cstdio>
+
 #include <cstdint>
+#include <cstdio>
 
 namespace {
 constexpr const char* ROOT = "/.crosspoint-max";
@@ -14,6 +16,13 @@ uint64_t fnv1a64(const std::string& value) {
     hash *= 1099511628211ULL;
   }
   return hash;
+}
+
+std::string hex64(const uint64_t value) {
+  char buf[17]{};
+  std::snprintf(buf, sizeof(buf), "%016llx",
+                static_cast<unsigned long long>(value));
+  return std::string(buf);
 }
 
 bool safeLanguage(const std::string& lang) {
@@ -29,22 +38,25 @@ bool safeLanguage(const std::string& lang) {
 
 namespace MaxTranslationCache {
 std::string stableBookHash(const std::string& bookPath) {
-  char buf[17]{};
-  std::snprintf(buf, sizeof(buf), "%016llx",
-                static_cast<unsigned long long>(fnv1a64(bookPath)));
-  return std::string(buf);
+  return hex64(fnv1a64(bookPath));
+}
+
+std::string sourceFingerprint(const std::string& sourceText) {
+  return hex64(fnv1a64(sourceText));
 }
 
 std::string pagePath(const std::string& bookPath, const int spine, const int page,
-                     const std::string& target) {
-  if (!safeLanguage(target) || spine < 0 || page < 0) return {};
+                     const std::string& target, const std::string& sourceText) {
+  if (!safeLanguage(target) || spine < 0 || page < 0 || sourceText.empty()) return {};
   return std::string(TRANS) + "/" + stableBookHash(bookPath) + "/p_" +
-         std::to_string(spine) + "_" + std::to_string(page) + "_" + target + ".txt";
+         std::to_string(spine) + "_" + std::to_string(page) + "_" + target + "_" +
+         sourceFingerprint(sourceText) + ".txt";
 }
 
 bool load(const std::string& bookPath, const int spine, const int page,
-          const std::string& target, std::string& translated) {
-  const std::string path = pagePath(bookPath, spine, page, target);
+          const std::string& target, const std::string& sourceText,
+          std::string& translated) {
+  const std::string path = pagePath(bookPath, spine, page, target, sourceText);
   if (path.empty() || !Storage.exists(path.c_str())) return false;
   const String data = Storage.readFile(path.c_str());
   if (data.length() == 0) return false;
@@ -53,12 +65,14 @@ bool load(const std::string& bookPath, const int spine, const int page,
 }
 
 bool store(const std::string& bookPath, const int spine, const int page,
-           const std::string& target, const std::string& translated) {
-  if (translated.empty()) return false;
+           const std::string& target, const std::string& sourceText,
+           const std::string& translated) {
+  if (sourceText.empty() || translated.empty()) return false;
   const std::string hash = stableBookHash(bookPath);
   const std::string dir = std::string(TRANS) + "/" + hash;
-  const std::string path = pagePath(bookPath, spine, page, target);
+  const std::string path = pagePath(bookPath, spine, page, target, sourceText);
   if (path.empty()) return false;
+
   if (!Storage.ensureDirectoryExists(ROOT)) return false;
   if (!Storage.ensureDirectoryExists(TRANS)) return false;
   if (!Storage.ensureDirectoryExists(dir.c_str())) return false;

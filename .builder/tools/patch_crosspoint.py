@@ -29,12 +29,13 @@ def apply(repo: Path, overlay: Path) -> None:
             raise PatchError(f"Required upstream file missing: {p}")
 
     ensure_absent(menu_h, "TRANSLATE_PAGE")
-    ensure_absent(reader_cpp, "openMaxTranslateChapter()")
+    ensure_absent(reader_cpp, "openMaxTranslateBook()")
 
     replace_once(
         menu_h,
         "    DELETE_CACHE,\n    DICTIONARY\n",
-        "    DELETE_CACHE,\n    DICTIONARY,\n    TRANSLATE_PAGE,\n    TRANSLATE_CHAPTER\n",
+        "    DELETE_CACHE,\n    DICTIONARY,\n    TRANSLATE_PAGE,\n"
+        "    TRANSLATE_CHAPTER,\n    TRANSLATE_BOOK\n",
         "menu enum",
     )
     replace_once(
@@ -46,22 +47,27 @@ def apply(repo: Path, overlay: Path) -> None:
     replace_once(
         menu_h,
         "  static constexpr size_t MAX_MENU_ITEMS = 16;\n",
-        "  static constexpr size_t MAX_MENU_ITEMS = 18;\n",
+        "  static constexpr size_t MAX_MENU_ITEMS = 19;\n",
         "menu capacity",
     )
 
     replace_once(
         menu_cpp,
         "    item.label = I18N.get(menuItems[i].labelId);\n",
-        "    item.label = menuItems[i].customLabel ? menuItems[i].customLabel : I18N.get(menuItems[i].labelId);\n",
+        "    item.label = menuItems[i].customLabel ? menuItems[i].customLabel : "
+        "I18N.get(menuItems[i].labelId);\n",
         "menu label rendering",
     )
     replace_once(
         menu_cpp,
         "  items.push_back({MenuAction::DICTIONARY, StrId::STR_LOOKUP});\n",
         "  items.push_back({MenuAction::DICTIONARY, StrId::STR_LOOKUP});\n"
-        "  items.push_back({MenuAction::TRANSLATE_PAGE, StrId::STR_LOOKUP, \"Translate Page\"});\n"
-        "  items.push_back({MenuAction::TRANSLATE_CHAPTER, StrId::STR_LOOKUP, \"Translate Chapter\"});\n",
+        "  items.push_back({MenuAction::TRANSLATE_PAGE, StrId::STR_LOOKUP, "
+        "\"Translate Page\"});\n"
+        "  items.push_back({MenuAction::TRANSLATE_CHAPTER, StrId::STR_LOOKUP, "
+        "\"Translate Chapter\"});\n"
+        "  items.push_back({MenuAction::TRANSLATE_BOOK, StrId::STR_LOOKUP, "
+        "\"Translate Book\"});\n",
         "translation menu insertion",
     )
 
@@ -71,7 +77,8 @@ def apply(repo: Path, overlay: Path) -> None:
         '#include "MappedInputManager.h"\n'
         '#include "max/MaxChapterTranslationActivity.h"\n'
         '#include "max/MaxPageText.h"\n'
-        '#include "max/MaxTranslateActivity.h"\n',
+        '#include "max/MaxTranslateActivity.h"\n'
+        '#include "max/MaxWholeBookTranslationActivity.h"\n',
         "reader MAX includes",
     )
 
@@ -80,7 +87,8 @@ def apply(repo: Path, overlay: Path) -> None:
         "  void openDictionaryWordSelect();\n",
         "  void openDictionaryWordSelect();\n"
         "  void openMaxTranslatePage();\n"
-        "  void openMaxTranslateChapter();\n",
+        "  void openMaxTranslateChapter();\n"
+        "  void openMaxTranslateBook();\n",
         "reader MAX method declarations",
     )
 
@@ -127,7 +135,26 @@ void EpubReaderActivity::openMaxTranslateChapter() {
 
   startActivityForResult(
       std::make_unique<MaxChapterTranslationActivity>(
-          renderer, mappedInput, epub->getPath(), currentSpineIndex, section.get()),
+          renderer, mappedInput, epub->getPath(), currentSpineIndex, section.get(),
+          SETTINGS.readerRenderSpec(buildViewportWidth, buildViewportHeight)),
+      [this](const ActivityResult&) { requestUpdate(); });
+}
+
+void EpubReaderActivity::openMaxTranslateBook() {
+  if (!epub || buildViewportWidth == 0 || buildViewportHeight == 0) {
+    requestUpdate();
+    return;
+  }
+
+  const ReaderRenderSpec spec =
+      SETTINGS.readerRenderSpec(buildViewportWidth, buildViewportHeight);
+  if (section) {
+    nextPageNumber = section->currentPage;
+    section.reset();
+  }
+  startActivityForResult(
+      std::make_unique<MaxWholeBookTranslationActivity>(
+          renderer, mappedInput, epub, spec),
       [this](const ActivityResult&) { requestUpdate(); });
 }
 
@@ -151,15 +178,21 @@ void EpubReaderActivity::openMaxTranslateChapter() {
         "    case EpubReaderMenuActivity::MenuAction::TRANSLATE_CHAPTER: {\n"
         "      openMaxTranslateChapter();\n"
         "      break;\n"
+        "    }\n"
+        "    case EpubReaderMenuActivity::MenuAction::TRANSLATE_BOOK: {\n"
+        "      openMaxTranslateBook();\n"
+        "      break;\n"
         "    }\n",
         "reader translation switch",
     )
 
     replace_once(
         reader_cpp,
-        '  return row >= 0 && row < static_cast<int>(moreItems.size()) ? I18N.get(moreItems[row].labelId) : "";\n',
+        '  return row >= 0 && row < static_cast<int>(moreItems.size()) ? '
+        'I18N.get(moreItems[row].labelId) : "";\n',
         '  if (row < 0 || row >= static_cast<int>(moreItems.size())) return "";\n'
-        '  return moreItems[row].customLabel ? moreItems[row].customLabel : I18N.get(moreItems[row].labelId);\n',
+        '  return moreItems[row].customLabel ? moreItems[row].customLabel : '
+        'I18N.get(moreItems[row].labelId);\n',
         "toolbar More custom label",
     )
 
@@ -167,12 +200,13 @@ void EpubReaderActivity::openMaxTranslateChapter() {
     if dest.exists():
         raise PatchError(f"{dest} already exists; refusing to overwrite")
     shutil.copytree(overlay / "src/max", dest)
-    print("CrossPoint MAX v1.2-dev patch applied safely.")
+    print("CrossPoint MAX v1.3-dev patch applied safely.")
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("repo")
-    ap.add_argument("--overlay", default=str(Path(__file__).resolve().parents[1] / "overlay"))
+    ap.add_argument("--overlay",
+                    default=str(Path(__file__).resolve().parents[1] / "overlay"))
     ns = ap.parse_args()
     apply(Path(ns.repo).resolve(), Path(ns.overlay).resolve())
     return 0

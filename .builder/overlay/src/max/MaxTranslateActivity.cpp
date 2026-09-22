@@ -67,7 +67,7 @@ void MaxTranslateActivity::process() {
     return;
   }
   if (config.cache &&
-      MaxTranslationCache::load(bookPath, spine, page, config.target, translatedText)) {
+      MaxTranslationCache::load(bookPath, spine, page, config.target, sourceText, translatedText)) {
     state = State::Ready;
     rebuildLines();
     return;
@@ -81,7 +81,7 @@ void MaxTranslateActivity::process() {
   }
   translatedText = response.translation;
   if (config.cache) {
-    MaxTranslationCache::store(bookPath, spine, page, config.target, translatedText);
+    MaxTranslationCache::store(bookPath, spine, page, config.target, sourceText, translatedText);
   }
   state = State::Ready;
   rebuildLines();
