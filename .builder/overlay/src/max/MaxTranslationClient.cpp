@@ -21,7 +21,7 @@ MaxTranslationResponse MaxTranslationClient::translate(const std::string& gatewa
     return result;
   }
   if (gateway.rfind("http://", 0) != 0) {
-    result.error = "HTTPS na X4: NOT IMPLEMENTED w v1.1-dev";
+    result.error = "Gateway MAX wymaga lokalnego adresu http://";
     return result;
   }
   if (text.empty()) {

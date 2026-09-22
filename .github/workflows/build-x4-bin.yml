@@ -54,11 +54,11 @@ jobs:
       - name: Upload ready BIN
         uses: actions/upload-artifact@v4
         with:
-          name: CrossPoint_MAX_X4_READY_TO_FLASH
+          name: CrossPoint_MAX_X4_v1_0_0_RC1_READY_TO_FLASH
           if-no-files-found: error
           path: |
-            dist/CrossPoint_MAX_X4_v1.5-dev.bin
-            dist/CrossPoint_MAX_X4_v1.5-dev.bin.sha256.txt
+            dist/CrossPoint_MAX_X4_v1.0.0-rc1.bin
+            dist/CrossPoint_MAX_X4_v1.0.0-rc1.bin.sha256.txt
             dist/build_manifest.json
             dist/source_report.json
           retention-days: 30

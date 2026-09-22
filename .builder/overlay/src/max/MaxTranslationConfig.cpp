@@ -48,7 +48,7 @@ bool MaxTranslationConfig::valid(std::string& error) const {
     return false;
   }
   if (gateway.rfind("http://", 0) != 0) {
-    error = "v1.1-dev: gateway musi zaczynac sie od http://";
+    error = "Gateway musi zaczynac sie od http://";
     return false;
   }
   if (target.empty() || target.size() > 16) {

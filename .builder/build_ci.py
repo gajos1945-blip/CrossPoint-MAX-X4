@@ -14,11 +14,12 @@ sys.path.insert(0, str(TOOLS))
 from patch_crosspoint import apply as apply_patch, PatchError
 from verify_project import inspect as inspect_project, VerificationError
 from bin_inspector import inspect_bin
+from release_guard import verify_required_markers
 
 UPSTREAM = "https://github.com/crosspoint-reader/crosspoint-reader.git"
 COMMIT = "54337e6d73fc628f4ba523ddc89a743ca8c6e4c5"
 ENV = "gh_release"
-RELEASE_NAME = "CrossPoint_MAX_X4_v1.5-dev.bin"
+RELEASE_NAME = "CrossPoint_MAX_X4_v1.0.0-rc1.bin"
 
 class BuildError(RuntimeError):
     pass
@@ -115,6 +116,10 @@ def main() -> int:
             f"{app_partition['name']} partition ({app_partition['size']})"
         )
 
+    marker_errors = verify_required_markers(fw)
+    if marker_errors:
+        raise BuildError("; ".join(marker_errors))
+
     print("=== 6/7 Create release files ===")
     final_bin = dist / RELEASE_NAME
     shutil.copy2(fw, final_bin)
@@ -125,7 +130,7 @@ def main() -> int:
 
     manifest = {
         "project": "CrossPoint MAX X4",
-        "version": "1.5-dev",
+        "version": "1.0.0-rc1",
         "base_release": "CrossPoint 1.6.0",
         "upstream_commit": COMMIT,
         "platformio_environment": ENV,
@@ -135,6 +140,8 @@ def main() -> int:
         "artifact": {**info, "filename": RELEASE_NAME, "sha256": sha},
         "source_facts": report,
         "application_partition": app_partition,
+        "release_status": "RELEASE_CANDIDATE_HARDWARE_UNVERIFIED",
+        "required_feature_markers_verified": True,
         "physical_device_verified": False,
         "flash_performed": False,
         "merged_full_flash": False,

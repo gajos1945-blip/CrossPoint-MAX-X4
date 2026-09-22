@@ -380,7 +380,7 @@ void EpubReaderActivity::openMaxTranslateBook() {
     if dest.exists():
         raise PatchError(f"{dest} already exists; refusing to overwrite")
     shutil.copytree(overlay / "src/max", dest)
-    print("CrossPoint MAX v1.5-dev patch applied safely.")
+    print("CrossPoint MAX v1.0.0-rc1 patch applied safely.")
 
 def main() -> int:
     ap = argparse.ArgumentParser()

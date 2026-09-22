@@ -1,108 +1,83 @@
-CROSSPOINT MAX X4 — v1.5-dev FIX1
-=================================
+CROSSPOINT MAX X4 — FINAL SOFTWARE PACKAGE v1.0.0-rc1
+=====================================================
 
-Ta paczka naprawia pierwszy blad kompilacji v1.5-dev.
+STATUS
+------
+Kod i zakres funkcjonalny projektu sa zakonczone po stronie software.
 
-GitHub Actions zatrzymal sie w MaxLibraryActivity.cpp przy:
-  listIconFor(UITheme::getFileIcon(...), 32)
+Ta wersja jest oznaczona:
+  RELEASE_CANDIDATE_HARDWARE_UNVERIFIED
 
-Przyczyna:
-  listIconFor() jest deklarowane w components/UiAppHelpers.h,
-  a v1.5-dev uzywalo tej funkcji bez dolaczenia tego naglowka.
+Nie oznaczam jej jako fizycznie zweryfikowanej wersji produkcyjnej, poniewaz
+XTEINK X4 nie jest obecnie dostepny do testu uruchomienia. To jest jedyna
+pozostala bramka przed nazwaniem tego samego kodu wersja v1.0.0.
 
-FIX1 dodaje brakujacy include. Nie zmienia logiki flash ani partycji.
+FUNKCJE
+-------
+- CrossPoint 1.6.0 jako przypieta, stabilna baza.
+- Home z MAX Library i MAX Settings.
+- Biblioteka:
+  Wszystkie / W trakcie / Nieprzeczytane / Przeczytane /
+  Ulubione / Autorzy / Serie / Kolekcje.
+- Szukanie po tytule, autorze, serii, kolekcji i sciezce.
+- Edycja Ulubione / Status / Seria / Kolekcja / Tom.
+- Translate Page.
+- Translate Chapter z progress/cancel/checkpoint/resume.
+- Translate Book spine-po-spine z progress/cancel/checkpoint/resume.
+- Tryb nauki.
+- Cache tlumaczen na microSD.
+- MAX Settings:
+  gateway, source language, target language, Study Mode, cache, rebuild Library.
+- Translation Gateway dla LibreTranslate / DeepL / opcjonalnego Argos.
+- Stockowe funkcje CrossPoint pozostaja baza: reader, Wi-Fi, file manager,
+  recent books, ustawienia czytania itd.
 
+BEZPIECZENSTWO BUILDU
+---------------------
+GitHub Actions publikuje BIN tylko gdy:
+- flash size jest potwierdzony z przypietego projektu,
+- application offset jest potwierdzony,
+- tabela partycji zostala odczytana,
+- firmware jest obrazem ESP,
+- firmware miesci sie w calej pamieci flash,
+- firmware miesci sie w potwierdzonej partycji aplikacji,
+- wymagane markery funkcji MAX sa faktycznie obecne w gotowym BIN.
 
-TEN ETAP DOMYKA GLOWNE FUNKCJE MAX PRZED RELEASE CANDIDATE.
+Workflow NIE wykonuje erase_flash i NIE flashuje urzadzenia.
 
-NOWE W v1.5
------------
-MAX LIBRARY:
-- jawny wiersz "Szukaj" na gorze biblioteki,
-- klawiatura CrossPoint do wpisywania zapytania,
-- szukanie po:
-    tytule,
-    autorze,
-    serii,
-    kolekcji,
-    sciezce pliku,
-- jawny wiersz "Widok" do zmiany:
-    Wszystkie / W trakcie / Nieprzeczytane / Przeczytane /
-    Ulubione / Autorzy / Serie / Kolekcje,
-- przytrzymanie Confirm na ksiazce otwiera "MAX Book":
-    Ulubione,
-    Status,
-    Seria,
-    Kolekcja,
-    Tom,
-- recznie wpisane Serie/Kolekcje/Tom przetrwaja przebudowe indeksu,
-  rowniez gdy Seria/Kolekcja zostanie celowo wyczyszczona.
-
-MAX SETTINGS:
-- nowa pozycja "MAX Settings" na Home,
-- edycja Translation Gateway na X4,
-- edycja jezyka zrodlowego,
-- edycja jezyka docelowego,
-- wlacz/wylacz Tryb nauki,
-- wlacz/wylacz cache tlumaczen,
-- przebuduj MAX Library.
-
-ZOSTAJE Z POPRZEDNICH WERSJI
-----------------------------
-- Translate Page,
-- Study Mode,
-- Translate Chapter + checkpoint/resume,
-- Translate Book + spine-by-spine + checkpoint/resume,
-- cache na microSD zwiazany z trescia strony i layoutem,
-- MAX Library,
-- statusy czytania,
-- ulubione,
-- Home MAX.
-
-STEROWANIE BIBLIOTEKI v1.5
---------------------------
-Confirm na "Szukaj":
-  otwiera klawiature
-
-Confirm na "Widok":
-  zmienia widok
-
-Confirm na ksiazce:
-  otwiera ksiazke
-
-Przytrzymaj Confirm ok. 0.9 s na ksiazce:
-  otwiera MAX Book / akcje i metadane
-
-Back, gdy wyszukiwanie jest aktywne:
-  czysci wyszukiwanie
-
-Back bez wyszukiwania:
-  wraca do Home
-
-JAK ZBUDOWAC
-------------
-1. Rozpakuj ZIP.
-2. Skopiuj CALA zawartosc do lokalnego repo:
+JAK ZBUDOWAC RC1
+----------------
+1. Rozpakuj ten ZIP.
+2. Skopiuj CALA zawartosc do Twojego lokalnego repo:
       CrossPoint-MAX-X4
-   i potwierdz nadpisanie.
-3. GitHub Desktop:
-      Summary: CrossPoint MAX v1.5-dev integration
+3. Potwierdz nadpisanie.
+4. GitHub Desktop:
+      Summary: CrossPoint MAX v1.0.0-rc1 final software package
       Commit to main
       Push origin
-4. Build wystartuje automatycznie.
-5. GitHub -> Actions -> BUILD READY BIN FOR X4.
-6. Po zielonym Success pobierz:
-      CrossPoint_MAX_X4_READY_TO_FLASH
+5. Build uruchomi sie automatycznie.
+6. GitHub -> Actions -> BUILD READY BIN FOR X4.
+7. Po Success pobierz artifact:
+      CrossPoint_MAX_X4_v1_0_0_RC1_READY_TO_FLASH
 
-W artifact powinny byc:
-  CrossPoint_MAX_X4_v1.5-dev.bin
-  CrossPoint_MAX_X4_v1.5-dev.bin.sha256.txt
+W artifact:
+  CrossPoint_MAX_X4_v1.0.0-rc1.bin
+  CrossPoint_MAX_X4_v1.0.0-rc1.bin.sha256.txt
   build_manifest.json
   source_report.json
 
-Jezeli build jest czerwony:
-  NIE FLASHUJ.
-  Przeslij screenshot/log czerwonego kroku.
+TRANSLATION GATEWAY
+-------------------
+Folder:
+  gateway/
 
-Po prawidlowym v1.5 bedziemy mieli baze do RELEASE CANDIDATE,
-ale RC dopiero po analizie BIN i testach na fizycznym X4.
+Nie zapisuj klucza DeepL/API w firmware ani na publicznym GitHubie.
+Klucz ustawiaj tylko jako zmienna srodowiskowa na komputerze uruchamiajacym
+gateway.
+
+UWAGA O "FINAL"
+---------------
+Bez fizycznego X4 mozemy zakonczyc implementacje, kompilacje, statyczne testy
+i kontrole obrazu BIN. Nie mozemy uczciwie potwierdzic bootu, przyciskow,
+e-ink refresh, Wi-Fi ani dlugiego tlumaczenia na konkretnym egzemplarzu.
+Dlatego artefakt jest RC1, a nie falszywie oznaczonym "hardware verified".
