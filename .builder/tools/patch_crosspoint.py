@@ -76,6 +76,7 @@ def apply(repo: Path, overlay: Path) -> None:
         '#include "MappedInputManager.h"\n',
         '#include "MappedInputManager.h"\n'
         '#include "max/MaxChapterTranslationActivity.h"\n'
+        '#include "max/MaxLibraryStore.h"\n'
         '#include "max/MaxPageText.h"\n'
         '#include "max/MaxTranslateActivity.h"\n'
         '#include "max/MaxWholeBookTranslationActivity.h"\n',
@@ -196,11 +197,173 @@ void EpubReaderActivity::openMaxTranslateBook() {
         "toolbar More custom label",
     )
 
+    # MAX Library lifecycle: one persistent status update when a book is opened,
+    # and one when the reader reaches the end.
+    replace_once(
+        reader_h,
+        "  bool recentsEntryRemoved = false;\n",
+        "  bool recentsEntryRemoved = false;\n"
+        "  bool maxLibraryReadMarked = false;\n",
+        "reader MAX library read flag",
+    )
+    replace_once(
+        reader_cpp,
+        "  epub = std::move(loadedEpub);\n",
+        "  epub = std::move(loadedEpub);\n"
+        "  MaxLibraryStore::markOpened(epub->getPath(), epub->getTitle(), "
+        "epub->getAuthor(), epub->getLanguage());\n",
+        "reader MAX library opened state",
+    )
+    replace_once(
+        reader_cpp,
+        "  const bool atEndOfBook = currentSpineIndex > 0 && "
+        "currentSpineIndex >= epub->getSpineItemsCount();\n",
+        "  const bool atEndOfBook = currentSpineIndex > 0 && "
+        "currentSpineIndex >= epub->getSpineItemsCount();\n"
+        "  if (atEndOfBook && !maxLibraryReadMarked) {\n"
+        "    MaxLibraryStore::markRead(epub->getPath());\n"
+        "    maxLibraryReadMarked = true;\n"
+        "  } else if (!atEndOfBook) {\n"
+        "    maxLibraryReadMarked = false;\n"
+        "  }\n",
+        "reader MAX library read state",
+    )
+
+    # MAX Library activity manager integration.
+    am_h = repo / "src/activities/ActivityManager.h"
+    am_cpp = repo / "src/activities/ActivityManager.cpp"
+    home_h = repo / "src/activities/home/HomeActivity.h"
+    home_cpp = repo / "src/activities/home/HomeActivity.cpp"
+    for p in (am_h, am_cpp, home_h, home_cpp):
+        if not p.is_file():
+            raise PatchError(f"Required MAX Library upstream file missing: {p}")
+
+    ensure_absent(am_h, "MAX_LIBRARY")
+    ensure_absent(am_cpp, "goToMaxLibrary()")
+
+    replace_once(
+        am_h,
+        "enum class HomeMenuItem { NONE, FILE_BROWSER, RECENTS, OPDS_BROWSER, FILE_TRANSFER, SETTINGS_MENU };\n",
+        "enum class HomeMenuItem { NONE, MAX_LIBRARY, FILE_BROWSER, RECENTS, "
+        "OPDS_BROWSER, FILE_TRANSFER, SETTINGS_MENU };\n",
+        "ActivityManager HomeMenuItem",
+    )
+    replace_once(
+        am_h,
+        "  void goToFileBrowser(std::string path = {});\n",
+        "  void goToFileBrowser(std::string path = {});\n"
+        "  void goToMaxLibrary();\n",
+        "ActivityManager goToMaxLibrary declaration",
+    )
+    replace_once(
+        am_cpp,
+        '#include "home/RecentBooksActivity.h"\n',
+        '#include "home/RecentBooksActivity.h"\n'
+        '#include "max/MaxLibraryActivity.h"\n',
+        "ActivityManager MAX Library include",
+    )
+    replace_once(
+        am_cpp,
+        "void ActivityManager::goToRecentBooks() {\n",
+        "void ActivityManager::goToMaxLibrary() {\n"
+        "  replaceActivity(std::make_unique<MaxLibraryActivity>(renderer, mappedInput));\n"
+        "}\n"
+        "void ActivityManager::goToRecentBooks() {\n",
+        "ActivityManager goToMaxLibrary implementation",
+    )
+    replace_once(
+        am_cpp,
+        '    if (activityName == "FileBrowser") {\n',
+        '    if (activityName == "MaxLibrary") {\n'
+        '      initialMenuItem = HomeMenuItem::MAX_LIBRARY;\n'
+        '    } else if (activityName == "FileBrowser") {\n',
+        "ActivityManager home return mapping",
+    )
+
+    # Home menu: put MAX Library first, while preserving existing recent covers
+    # and all stock navigation.
+    replace_once(
+        home_h,
+        "    if (item == HomeMenuItem::FILE_BROWSER) return i;\n",
+        "    if (item == HomeMenuItem::MAX_LIBRARY) return i;\n"
+        "    ++i;\n"
+        "    if (item == HomeMenuItem::FILE_BROWSER) return i;\n",
+        "Home menu item mapping forward",
+    )
+    replace_once(
+        home_h,
+        "    if (idx == i++) return HomeMenuItem::FILE_BROWSER;\n",
+        "    if (idx == i++) return HomeMenuItem::MAX_LIBRARY;\n"
+        "    if (idx == i++) return HomeMenuItem::FILE_BROWSER;\n",
+        "Home menu item mapping reverse",
+    )
+    replace_once(
+        home_h,
+        "  void onFileBrowserOpen();\n",
+        "  void onFileBrowserOpen();\n"
+        "  void onMaxLibraryOpen();\n",
+        "Home MAX Library declaration",
+    )
+    replace_once(
+        home_cpp,
+        "  int count = 4;  // File Browser, Recents, File transfer, Settings\n",
+        "  int count = 5;  // MAX Library, File Browser, Recents, File transfer, Settings\n",
+        "Home base menu count",
+    )
+    replace_once(
+        home_cpp,
+        "      case HomeMenuItem::FILE_BROWSER:\n"
+        "        onFileBrowserOpen();\n"
+        "        break;\n",
+        "      case HomeMenuItem::MAX_LIBRARY:\n"
+        "        onMaxLibraryOpen();\n"
+        "        break;\n"
+        "      case HomeMenuItem::FILE_BROWSER:\n"
+        "        onFileBrowserOpen();\n"
+        "        break;\n",
+        "Home MAX Library action",
+    )
+    replace_once(
+        home_cpp,
+        "  std::vector<const char*> menuItems = {tr(STR_BROWSE_FILES), tr(STR_MENU_RECENT_BOOKS), tr(STR_FILE_TRANSFER),\n"
+        "                                         tr(STR_SETTINGS_TITLE)};\n"
+        "  std::vector<UIIcon> menuIcons = {Folder, Recent, Transfer, Settings};\n",
+        "  std::vector<const char*> menuItems = {\"MAX Library\", tr(STR_BROWSE_FILES), "
+        "tr(STR_MENU_RECENT_BOOKS), tr(STR_FILE_TRANSFER),\n"
+        "                                         tr(STR_SETTINGS_TITLE)};\n"
+        "  std::vector<UIIcon> menuIcons = {Library, Folder, Recent, Transfer, Settings};\n",
+        "Home MAX Library render row",
+    )
+    replace_once(
+        home_cpp,
+        "    menuItems.insert(menuItems.begin() + 2, tr(STR_OPDS_BROWSER));\n"
+        "    menuIcons.insert(menuIcons.begin() + 2, Library);\n",
+        "    menuItems.insert(menuItems.begin() + 3, tr(STR_OPDS_BROWSER));\n"
+        "    menuIcons.insert(menuIcons.begin() + 3, Library);\n",
+        "Home OPDS insertion offset",
+    )
+    replace_once(
+        home_cpp,
+        "                  metrics.homeContinueReadingInMenu && !recentBooks.empty() ? "
+        "recentBooks[0].title.c_str() : nullptr);\n",
+        "                  metrics.homeContinueReadingInMenu && !recentBooks.empty() ? "
+        "recentBooks[0].title.c_str() : \"CrossPoint MAX\");\n",
+        "Home MAX branding",
+    )
+    replace_once(
+        home_cpp,
+        "void HomeActivity::onFileBrowserOpen() { activityManager.goToFileBrowser(); }\n",
+        "void HomeActivity::onFileBrowserOpen() { activityManager.goToFileBrowser(); }\n"
+        "void HomeActivity::onMaxLibraryOpen() { activityManager.goToMaxLibrary(); }\n",
+        "Home MAX Library implementation",
+    )
+
+
     dest = repo / "src/max"
     if dest.exists():
         raise PatchError(f"{dest} already exists; refusing to overwrite")
     shutil.copytree(overlay / "src/max", dest)
-    print("CrossPoint MAX v1.3-dev patch applied safely.")
+    print("CrossPoint MAX v1.4-dev patch applied safely.")
 
 def main() -> int:
     ap = argparse.ArgumentParser()

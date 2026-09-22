@@ -18,7 +18,7 @@ from bin_inspector import inspect_bin
 UPSTREAM = "https://github.com/crosspoint-reader/crosspoint-reader.git"
 COMMIT = "54337e6d73fc628f4ba523ddc89a743ca8c6e4c5"
 ENV = "gh_release"
-RELEASE_NAME = "CrossPoint_MAX_X4_v1.3-dev.bin"
+RELEASE_NAME = "CrossPoint_MAX_X4_v1.4-dev.bin"
 
 class BuildError(RuntimeError):
     pass
@@ -125,7 +125,7 @@ def main() -> int:
 
     manifest = {
         "project": "CrossPoint MAX X4",
-        "version": "1.3-dev",
+        "version": "1.4-dev",
         "base_release": "CrossPoint 1.6.0",
         "upstream_commit": COMMIT,
         "platformio_environment": ENV,
