@@ -323,16 +323,21 @@ void EpubReaderActivity::openMaxTranslateBook() {
         "        break;\n",
         "Home MAX Library action",
     )
+    # Patch the two unique source lines separately.  The pinned upstream wraps
+    # menuItems across two physical lines; matching the whole block made the
+    # patch unnecessarily whitespace-sensitive.
     replace_once(
         home_cpp,
-        "  std::vector<const char*> menuItems = {tr(STR_BROWSE_FILES), tr(STR_MENU_RECENT_BOOKS), tr(STR_FILE_TRANSFER),\n"
-        "                                         tr(STR_SETTINGS_TITLE)};\n"
-        "  std::vector<UIIcon> menuIcons = {Folder, Recent, Transfer, Settings};\n",
+        "  std::vector<const char*> menuItems = {tr(STR_BROWSE_FILES), tr(STR_MENU_RECENT_BOOKS), tr(STR_FILE_TRANSFER),\n",
         "  std::vector<const char*> menuItems = {\"MAX Library\", tr(STR_BROWSE_FILES), "
-        "tr(STR_MENU_RECENT_BOOKS), tr(STR_FILE_TRANSFER),\n"
-        "                                         tr(STR_SETTINGS_TITLE)};\n"
+        "tr(STR_MENU_RECENT_BOOKS), tr(STR_FILE_TRANSFER),\n",
+        "Home MAX Library menuItems line",
+    )
+    replace_once(
+        home_cpp,
+        "  std::vector<UIIcon> menuIcons = {Folder, Recent, Transfer, Settings};\n",
         "  std::vector<UIIcon> menuIcons = {Library, Folder, Recent, Transfer, Settings};\n",
-        "Home MAX Library render row",
+        "Home MAX Library menuIcons line",
     )
     replace_once(
         home_cpp,
@@ -344,10 +349,10 @@ void EpubReaderActivity::openMaxTranslateBook() {
     )
     replace_once(
         home_cpp,
-        "                  metrics.homeContinueReadingInMenu && !recentBooks.empty() ? "
-        "recentBooks[0].title.c_str() : nullptr);\n",
-        "                  metrics.homeContinueReadingInMenu && !recentBooks.empty() ? "
-        "recentBooks[0].title.c_str() : \"CrossPoint MAX\");\n",
+        "metrics.homeContinueReadingInMenu && !recentBooks.empty() ? "
+        "recentBooks[0].title.c_str() : nullptr);",
+        "metrics.homeContinueReadingInMenu && !recentBooks.empty() ? "
+        "recentBooks[0].title.c_str() : \"CrossPoint MAX\");",
         "Home MAX branding",
     )
     replace_once(

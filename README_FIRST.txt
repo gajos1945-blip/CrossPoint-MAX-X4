@@ -1,5 +1,13 @@
-CROSSPOINT MAX X4 — UPDATE v1.4-dev
-===================================
+CROSSPOINT MAX X4 — v1.4-dev FIX1
+=================================
+
+Ta paczka naprawia fail-safe patcher z pierwszej paczki v1.4-dev.
+Pierwszy build zatrzymal sie PRZED kompilacja na anchorze HomeActivity.cpp:
+  Home MAX Library render row: expected exactly one anchor, found 0
+
+FIX1 uzywa dwoch jednoznacznych, pojedynczych anchorow menuItems/menuIcons,
+zgodnych z przypietym CrossPoint 1.6.0 / commit 54337e6.
+
 
 NOWE W v1.4
 -----------
