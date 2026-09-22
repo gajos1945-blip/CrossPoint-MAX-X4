@@ -244,7 +244,7 @@ void EpubReaderActivity::openMaxTranslateBook() {
     replace_once(
         am_h,
         "enum class HomeMenuItem { NONE, FILE_BROWSER, RECENTS, OPDS_BROWSER, FILE_TRANSFER, SETTINGS_MENU };\n",
-        "enum class HomeMenuItem { NONE, MAX_LIBRARY, FILE_BROWSER, RECENTS, "
+        "enum class HomeMenuItem { NONE, MAX_LIBRARY, MAX_SETTINGS, FILE_BROWSER, RECENTS, "
         "OPDS_BROWSER, FILE_TRANSFER, SETTINGS_MENU };\n",
         "ActivityManager HomeMenuItem",
     )
@@ -252,14 +252,16 @@ void EpubReaderActivity::openMaxTranslateBook() {
         am_h,
         "  void goToFileBrowser(std::string path = {});\n",
         "  void goToFileBrowser(std::string path = {});\n"
-        "  void goToMaxLibrary();\n",
+        "  void goToMaxLibrary();\n"
+        "  void goToMaxSettings();\n",
         "ActivityManager goToMaxLibrary declaration",
     )
     replace_once(
         am_cpp,
         '#include "home/RecentBooksActivity.h"\n',
         '#include "home/RecentBooksActivity.h"\n'
-        '#include "max/MaxLibraryActivity.h"\n',
+        '#include "max/MaxLibraryActivity.h"\n'
+        '#include "max/MaxSettingsActivity.h"\n',
         "ActivityManager MAX Library include",
     )
     replace_once(
@@ -267,6 +269,9 @@ void EpubReaderActivity::openMaxTranslateBook() {
         "void ActivityManager::goToRecentBooks() {\n",
         "void ActivityManager::goToMaxLibrary() {\n"
         "  replaceActivity(std::make_unique<MaxLibraryActivity>(renderer, mappedInput));\n"
+        "}\n"
+        "void ActivityManager::goToMaxSettings() {\n"
+        "  replaceActivity(std::make_unique<MaxSettingsActivity>(renderer, mappedInput));\n"
         "}\n"
         "void ActivityManager::goToRecentBooks() {\n",
         "ActivityManager goToMaxLibrary implementation",
@@ -276,6 +281,8 @@ void EpubReaderActivity::openMaxTranslateBook() {
         '    if (activityName == "FileBrowser") {\n',
         '    if (activityName == "MaxLibrary") {\n'
         '      initialMenuItem = HomeMenuItem::MAX_LIBRARY;\n'
+        '    } else if (activityName == "MaxSettings") {\n'
+        '      initialMenuItem = HomeMenuItem::MAX_SETTINGS;\n'
         '    } else if (activityName == "FileBrowser") {\n',
         "ActivityManager home return mapping",
     )
@@ -287,6 +294,8 @@ void EpubReaderActivity::openMaxTranslateBook() {
         "    if (item == HomeMenuItem::FILE_BROWSER) return i;\n",
         "    if (item == HomeMenuItem::MAX_LIBRARY) return i;\n"
         "    ++i;\n"
+        "    if (item == HomeMenuItem::MAX_SETTINGS) return i;\n"
+        "    ++i;\n"
         "    if (item == HomeMenuItem::FILE_BROWSER) return i;\n",
         "Home menu item mapping forward",
     )
@@ -294,6 +303,7 @@ void EpubReaderActivity::openMaxTranslateBook() {
         home_h,
         "    if (idx == i++) return HomeMenuItem::FILE_BROWSER;\n",
         "    if (idx == i++) return HomeMenuItem::MAX_LIBRARY;\n"
+        "    if (idx == i++) return HomeMenuItem::MAX_SETTINGS;\n"
         "    if (idx == i++) return HomeMenuItem::FILE_BROWSER;\n",
         "Home menu item mapping reverse",
     )
@@ -301,13 +311,14 @@ void EpubReaderActivity::openMaxTranslateBook() {
         home_h,
         "  void onFileBrowserOpen();\n",
         "  void onFileBrowserOpen();\n"
-        "  void onMaxLibraryOpen();\n",
+        "  void onMaxLibraryOpen();\n"
+        "  void onMaxSettingsOpen();\n",
         "Home MAX Library declaration",
     )
     replace_once(
         home_cpp,
         "  int count = 4;  // File Browser, Recents, File transfer, Settings\n",
-        "  int count = 5;  // MAX Library, File Browser, Recents, File transfer, Settings\n",
+        "  int count = 6;  // MAX Library, MAX Settings, File Browser, Recents, File transfer, Settings\n",
         "Home base menu count",
     )
     replace_once(
@@ -329,22 +340,22 @@ void EpubReaderActivity::openMaxTranslateBook() {
     replace_once(
         home_cpp,
         "  std::vector<const char*> menuItems = {tr(STR_BROWSE_FILES), tr(STR_MENU_RECENT_BOOKS), tr(STR_FILE_TRANSFER),\n",
-        "  std::vector<const char*> menuItems = {\"MAX Library\", tr(STR_BROWSE_FILES), "
+        "  std::vector<const char*> menuItems = {\"MAX Library\", \"MAX Settings\", tr(STR_BROWSE_FILES), "
         "tr(STR_MENU_RECENT_BOOKS), tr(STR_FILE_TRANSFER),\n",
         "Home MAX Library menuItems line",
     )
     replace_once(
         home_cpp,
         "  std::vector<UIIcon> menuIcons = {Folder, Recent, Transfer, Settings};\n",
-        "  std::vector<UIIcon> menuIcons = {Library, Folder, Recent, Transfer, Settings};\n",
+        "  std::vector<UIIcon> menuIcons = {Library, Settings, Folder, Recent, Transfer, Settings};\n",
         "Home MAX Library menuIcons line",
     )
     replace_once(
         home_cpp,
         "    menuItems.insert(menuItems.begin() + 2, tr(STR_OPDS_BROWSER));\n"
         "    menuIcons.insert(menuIcons.begin() + 2, Library);\n",
-        "    menuItems.insert(menuItems.begin() + 3, tr(STR_OPDS_BROWSER));\n"
-        "    menuIcons.insert(menuIcons.begin() + 3, Library);\n",
+        "    menuItems.insert(menuItems.begin() + 4, tr(STR_OPDS_BROWSER));\n"
+        "    menuIcons.insert(menuIcons.begin() + 4, Library);\n",
         "Home OPDS insertion offset",
     )
     replace_once(
@@ -359,7 +370,8 @@ void EpubReaderActivity::openMaxTranslateBook() {
         home_cpp,
         "void HomeActivity::onFileBrowserOpen() { activityManager.goToFileBrowser(); }\n",
         "void HomeActivity::onFileBrowserOpen() { activityManager.goToFileBrowser(); }\n"
-        "void HomeActivity::onMaxLibraryOpen() { activityManager.goToMaxLibrary(); }\n",
+        "void HomeActivity::onMaxLibraryOpen() { activityManager.goToMaxLibrary(); }\n"
+        "void HomeActivity::onMaxSettingsOpen() { activityManager.goToMaxSettings(); }\n",
         "Home MAX Library implementation",
     )
 
@@ -368,7 +380,7 @@ void EpubReaderActivity::openMaxTranslateBook() {
     if dest.exists():
         raise PatchError(f"{dest} already exists; refusing to overwrite")
     shutil.copytree(overlay / "src/max", dest)
-    print("CrossPoint MAX v1.4-dev patch applied safely.")
+    print("CrossPoint MAX v1.5-dev patch applied safely.")
 
 def main() -> int:
     ap = argparse.ArgumentParser()

@@ -1,104 +1,96 @@
-CROSSPOINT MAX X4 — v1.4-dev FIX1
-=================================
+CROSSPOINT MAX X4 — UPDATE v1.5-dev
+===================================
 
-Ta paczka naprawia fail-safe patcher z pierwszej paczki v1.4-dev.
-Pierwszy build zatrzymal sie PRZED kompilacja na anchorze HomeActivity.cpp:
-  Home MAX Library render row: expected exactly one anchor, found 0
+TEN ETAP DOMYKA GLOWNE FUNKCJE MAX PRZED RELEASE CANDIDATE.
 
-FIX1 uzywa dwoch jednoznacznych, pojedynczych anchorow menuItems/menuIcons,
-zgodnych z przypietym CrossPoint 1.6.0 / commit 54337e6.
-
-
-NOWE W v1.4
+NOWE W v1.5
 -----------
-1. MAX Library na ekranie Home.
-2. Indeks biblioteki na microSD:
-      /.crosspoint-max/library/index.jsonl
-3. Do 600 ksiazek w indeksie tego etapu.
-4. Widoki:
-      Wszystkie
-      W trakcie
-      Nieprzeczytane
-      Przeczytane
-      Ulubione
-      Autorzy
-      Serie
-      Kolekcje
-5. Tytul/autor/jezyk sa pobierane z juz istniejacego cache EPUB, kiedy jest dostepny.
-   Nie wymuszamy parsowania setek EPUB-ow naraz.
-6. Status "W trakcie" zapisuje sie automatycznie po otwarciu EPUB.
-7. Status "Przeczytane" zapisuje sie automatycznie po dojsciu do konca EPUB.
-8. Home zachowuje standardowe CrossPoint "Continue Reading"/okladki, ale dostaje
-   wejscie MAX Library i branding CrossPoint MAX.
+MAX LIBRARY:
+- jawny wiersz "Szukaj" na gorze biblioteki,
+- klawiatura CrossPoint do wpisywania zapytania,
+- szukanie po:
+    tytule,
+    autorze,
+    serii,
+    kolekcji,
+    sciezce pliku,
+- jawny wiersz "Widok" do zmiany:
+    Wszystkie / W trakcie / Nieprzeczytane / Przeczytane /
+    Ulubione / Autorzy / Serie / Kolekcje,
+- przytrzymanie Confirm na ksiazce otwiera "MAX Book":
+    Ulubione,
+    Status,
+    Seria,
+    Kolekcja,
+    Tom,
+- recznie wpisane Serie/Kolekcje/Tom przetrwaja przebudowe indeksu,
+  rowniez gdy Seria/Kolekcja zostanie celowo wyczyszczona.
 
-STEROWANIE W MAX LIBRARY
-------------------------
-Krotki Confirm:
-  otworz ksiazke
+MAX SETTINGS:
+- nowa pozycja "MAX Settings" na Home,
+- edycja Translation Gateway na X4,
+- edycja jezyka zrodlowego,
+- edycja jezyka docelowego,
+- wlacz/wylacz Tryb nauki,
+- wlacz/wylacz cache tlumaczen,
+- przebuduj MAX Library.
 
-Przytrzymaj Confirm ok. 1 sekundy:
-  dodaj/usun Ulubione
+ZOSTAJE Z POPRZEDNICH WERSJI
+----------------------------
+- Translate Page,
+- Study Mode,
+- Translate Chapter + checkpoint/resume,
+- Translate Book + spine-by-spine + checkpoint/resume,
+- cache na microSD zwiazany z trescia strony i layoutem,
+- MAX Library,
+- statusy czytania,
+- ulubione,
+- Home MAX.
 
-Przytrzymaj Confirm ponad 2.2 sekundy:
-  recznie przelacz status:
-  NEW -> READING -> READ -> NEW
+STEROWANIE BIBLIOTEKI v1.5
+--------------------------
+Confirm na "Szukaj":
+  otwiera klawiature
 
-Krotki Back:
-  Home
+Confirm na "Widok":
+  zmienia widok
 
-Przytrzymaj Back ok. 1 sekundy:
-  nastepny widok biblioteki
+Confirm na ksiazce:
+  otwiera ksiazke
 
-Up / Down:
-  nawigacja listy
+Przytrzymaj Confirm ok. 0.9 s na ksiazce:
+  otwiera MAX Book / akcje i metadane
 
-SERIE I KOLEKCJE
-----------------
-W v1.4-dev uzywamy bezpiecznej, deterministycznej konwencji folderow:
+Back, gdy wyszukiwanie jest aktywne:
+  czysci wyszukiwanie
 
-  /Books/<Kolekcja>/<Seria>/<plik.epub>
-
-Przyklad:
-  /Books/Fantasy/Wiedzmin/01 Ostatnie zyczenie.epub
-
-Da:
-  Kolekcja = Fantasy
-  Seria     = Wiedzmin
-
-Jesli plik lezy:
-  /Books/Fantasy/Hobbit.epub
-
-Da:
-  Kolekcja = Fantasy
-  Seria = pusta
-
-Nie zgadujemy serii z tytulu ani metadanych, ktorych pinned CrossPoint 1.6.0
-nie udostepnia przez publiczny Epub API.
-
-NIE MA JESZCZE W v1.4
----------------------
-- tekstowego wyszukiwania wpisywanego na urzadzeniu,
-- edytora nazw serii/kolekcji na X4,
-- automatycznego numeru tomu z metadanych EPUB.
-
-Te elementy zostaja do etapu integracyjnego v1.5.
+Back bez wyszukiwania:
+  wraca do Home
 
 JAK ZBUDOWAC
 ------------
 1. Rozpakuj ZIP.
-2. Skopiuj CALA zawartosc do lokalnego repo CrossPoint-MAX-X4 i nadpisz pliki.
+2. Skopiuj CALA zawartosc do lokalnego repo:
+      CrossPoint-MAX-X4
+   i potwierdz nadpisanie.
 3. GitHub Desktop:
-      Summary: CrossPoint MAX v1.4-dev MAX Library and Home
+      Summary: CrossPoint MAX v1.5-dev integration
       Commit to main
       Push origin
-4. Build uruchomi sie automatycznie.
+4. Build wystartuje automatycznie.
 5. GitHub -> Actions -> BUILD READY BIN FOR X4.
-6. Po zielonym Success pobierz CrossPoint_MAX_X4_READY_TO_FLASH.
+6. Po zielonym Success pobierz:
+      CrossPoint_MAX_X4_READY_TO_FLASH
 
 W artifact powinny byc:
-  CrossPoint_MAX_X4_v1.4-dev.bin
-  CrossPoint_MAX_X4_v1.4-dev.bin.sha256.txt
+  CrossPoint_MAX_X4_v1.5-dev.bin
+  CrossPoint_MAX_X4_v1.5-dev.bin.sha256.txt
   build_manifest.json
   source_report.json
 
-Jezeli build jest czerwony: NIE FLASHUJ. Wyslij screenshot/log bledu.
+Jezeli build jest czerwony:
+  NIE FLASHUJ.
+  Przeslij screenshot/log czerwonego kroku.
+
+Po prawidlowym v1.5 bedziemy mieli baze do RELEASE CANDIDATE,
+ale RC dopiero po analizie BIN i testach na fizycznym X4.

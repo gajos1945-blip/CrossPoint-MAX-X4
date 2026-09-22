@@ -45,9 +45,6 @@ bool recentPath(const std::string& path) {
 
 void deriveFolderMetadata(const std::string& path, std::string& collection,
                           std::string& series) {
-  // Deterministic MAX convention:
-  // /Books/<collection>/<series>/<book>
-  // /Books/<collection>/<book>
   std::string rel = path;
   constexpr const char* booksPrefix = "/Books/";
   if (rel.rfind(booksPrefix, 0) == 0) {
@@ -60,7 +57,7 @@ void deriveFolderMetadata(const std::string& path, std::string& collection,
   size_t pos = 0;
   while (pos < rel.size()) {
     const size_t slash = rel.find('/', pos);
-    if (slash == std::string::npos) break;  // remaining component is filename
+    if (slash == std::string::npos) break;
     if (slash > pos) parts.push_back(rel.substr(pos, slash - pos));
     pos = slash + 1;
   }
@@ -77,7 +74,6 @@ bool readLine(HalFile& file, std::string& line) {
     if (ch == '\n') return true;
     if (ch == '\r') continue;
     if (line.size() >= MAX_LINE_BYTES) {
-      // Corrupt/unbounded record: consume until newline, then reject this row.
       while (file.available()) {
         const int c = file.read();
         if (c < 0 || c == '\n') break;
@@ -111,6 +107,10 @@ bool parseBookLine(const std::string& line, MaxLibraryBook& book) {
   book.status = rawStatus == 2 ? MaxReadingStatus::Read
                               : rawStatus == 1 ? MaxReadingStatus::InProgress
                                                : MaxReadingStatus::Unread;
+
+  book.seriesManual = doc["series_manual"] | false;
+  book.volumeManual = doc["volume_manual"] | false;
+  book.collectionManual = doc["collection_manual"] | false;
   return true;
 }
 
@@ -125,6 +125,9 @@ bool writeBookLine(HalFile& file, const MaxLibraryBook& book) {
   doc["collection"] = book.collection;
   doc["favorite"] = book.favorite;
   doc["status"] = static_cast<uint8_t>(book.status);
+  doc["series_manual"] = book.seriesManual;
+  doc["volume_manual"] = book.volumeManual;
+  doc["collection_manual"] = book.collectionManual;
 
   String out;
   serializeJson(doc, out);
@@ -146,8 +149,7 @@ void fillMetadata(MaxLibraryBook& book) {
 
   if (FsHelpers::hasEpubExtension(book.path)) {
     Epub epub(book.path, "/.crosspoint");
-    // buildIfMissing=false: Library scan never parses hundreds of uncached EPUBs
-    // in one blocking pass. Opening the book later refreshes its metadata.
+    // Never force metadata generation for the full library scan.
     if (epub.load(false, true)) {
       if (!epub.getTitle().empty()) book.title = epub.getTitle();
       book.author = epub.getAuthor();
@@ -179,7 +181,6 @@ bool mutateByPath(const std::string& path,
   if (!changed) return false;
   return MaxLibraryStore::save(books);
 }
-
 }  // namespace
 
 namespace MaxLibraryStore {
@@ -274,7 +275,6 @@ bool rebuild(std::vector<MaxLibraryBook>& books) {
       const bool isDir = entry.isDirectory();
       entry.close();
 
-      // Never index CrossPoint/MAX private caches.
       if (isDir && (std::strcmp(nameBuffer, ".crosspoint") == 0 ||
                     std::strcmp(nameBuffer, ".crosspoint-max") == 0)) {
         continue;
@@ -297,15 +297,32 @@ bool rebuild(std::vector<MaxLibraryBook>& books) {
       if (const MaxLibraryBook* old = findOld(oldBooks, book.path)) {
         book.favorite = old->favorite;
         book.status = old->status;
-        if (!old->series.empty()) book.series = old->series;
-        if (old->volume != 0) book.volume = old->volume;
-        if (!old->collection.empty()) book.collection = old->collection;
+
+        book.seriesManual = old->seriesManual;
+        book.volumeManual = old->volumeManual;
+        book.collectionManual = old->collectionManual;
+
+        if (old->seriesManual) {
+          book.series = old->series;
+        } else if (!old->series.empty()) {
+          book.series = old->series;
+        }
+        if (old->volumeManual) {
+          book.volume = old->volume;
+        } else if (old->volume != 0) {
+          book.volume = old->volume;
+        }
+        if (old->collectionManual) {
+          book.collection = old->collection;
+        } else if (!old->collection.empty()) {
+          book.collection = old->collection;
+        }
+
         if (!old->title.empty() && book.title.empty()) book.title = old->title;
         if (!old->author.empty() && book.author.empty()) book.author = old->author;
         if (!old->language.empty() && book.language.empty()) book.language = old->language;
       }
 
-      // A recent item is at least in progress unless already explicitly read.
       if (book.status != MaxReadingStatus::Read && recentPath(book.path)) {
         book.status = MaxReadingStatus::InProgress;
       }
@@ -322,13 +339,20 @@ bool rebuild(std::vector<MaxLibraryBook>& books) {
   return save(books);
 }
 
+bool getBook(const std::string& path, MaxLibraryBook& book) {
+  std::vector<MaxLibraryBook> books;
+  if (!load(books)) return false;
+  const auto it = std::find_if(books.begin(), books.end(),
+                               [&](const MaxLibraryBook& b) { return b.path == path; });
+  if (it == books.end()) return false;
+  book = *it;
+  return true;
+}
+
 bool markOpened(const std::string& path, const std::string& title,
                 const std::string& author, const std::string& language) {
   std::vector<MaxLibraryBook> books;
-  if (!load(books)) {
-    // Index does not exist yet; Library rebuild will discover the book later.
-    return false;
-  }
+  if (!load(books)) return false;
 
   auto it = std::find_if(books.begin(), books.end(),
                          [&](const MaxLibraryBook& b) { return b.path == path; });
@@ -389,6 +413,30 @@ bool cycleStatus(const std::string& path, MaxReadingStatus* newStatus) {
   });
   if (ok && newStatus) *newStatus = value;
   return ok;
+}
+
+bool setSeries(const std::string& path, const std::string& value) {
+  return mutateByPath(path, [&](MaxLibraryBook& book) {
+    book.series = value;
+    book.seriesManual = true;
+    return true;
+  });
+}
+
+bool setCollection(const std::string& path, const std::string& value) {
+  return mutateByPath(path, [&](MaxLibraryBook& book) {
+    book.collection = value;
+    book.collectionManual = true;
+    return true;
+  });
+}
+
+bool setVolume(const std::string& path, const uint16_t value) {
+  return mutateByPath(path, [&](MaxLibraryBook& book) {
+    book.volume = value;
+    book.volumeManual = true;
+    return true;
+  });
 }
 
 }  // namespace MaxLibraryStore

@@ -20,6 +20,12 @@ struct MaxLibraryBook {
   std::string collection;
   bool favorite = false;
   MaxReadingStatus status = MaxReadingStatus::Unread;
+
+  // Preserve deliberate user overrides across index rebuilds, including
+  // deliberately-cleared values.
+  bool seriesManual = false;
+  bool volumeManual = false;
+  bool collectionManual = false;
 };
 
 namespace MaxLibraryStore {
@@ -31,17 +37,16 @@ const char* statusName(MaxReadingStatus status);
 
 bool load(std::vector<MaxLibraryBook>& books);
 bool save(const std::vector<MaxLibraryBook>& books);
-
-// Re-scan supported books from /Books when it exists, otherwise from /.
-// Cached EPUB metadata is reused; missing metadata falls back to filename.
-// Existing favorite/status/series/collection values are preserved by path.
 bool rebuild(std::vector<MaxLibraryBook>& books);
+bool getBook(const std::string& path, MaxLibraryBook& book);
 
-// Called by the reader. These update the persistent index when it exists.
-// markOpened never downgrades Read -> InProgress.
 bool markOpened(const std::string& path, const std::string& title,
                 const std::string& author, const std::string& language);
 bool markRead(const std::string& path);
 bool toggleFavorite(const std::string& path, bool* newValue = nullptr);
 bool cycleStatus(const std::string& path, MaxReadingStatus* newStatus = nullptr);
+
+bool setSeries(const std::string& path, const std::string& value);
+bool setCollection(const std::string& path, const std::string& value);
+bool setVolume(const std::string& path, uint16_t value);
 }
