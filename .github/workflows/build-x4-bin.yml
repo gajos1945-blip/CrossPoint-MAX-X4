@@ -1,0 +1,62 @@
+name: BUILD READY BIN FOR X4
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-x4-bin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout MAX builder
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+          enable-cache: false
+
+      - name: Install official CrossPoint PlatformIO toolchain
+        run: |
+          uv pip install --system -U https://github.com/pioarduino/platformio-core/archive/refs/tags/v6.1.19.zip
+          uv pip install --system -U \
+            "littlefs-python>=0.16.0" \
+            "fatfs-ng>=0.1.14" \
+            "pyyaml>=6.0.2" \
+            "rich-click>=1.8.6" \
+            "zopfli>=0.2.2" \
+            "intelhex>=2.3.0" \
+            "rich>=14.0.0" \
+            "urllib3<2" \
+            "cryptography>=45.0.3" \
+            "certifi>=2025.8.3" \
+            "ecdsa>=0.19.1" \
+            "bitstring>=4.3.1" \
+            "reedsolo>=1.5.3,<1.8" \
+            "esp-idf-size>=2.0.0" \
+            "esp-coredump>=1.14.0"
+
+      - name: Build CrossPoint MAX X4
+        run: python .builder/build_ci.py
+
+      - name: Upload ready BIN
+        uses: actions/upload-artifact@v4
+        with:
+          name: CrossPoint_MAX_X4_READY_TO_FLASH
+          if-no-files-found: error
+          path: |
+            dist/CrossPoint_MAX_X4_v1.1-dev.bin
+            dist/CrossPoint_MAX_X4_v1.1-dev.bin.sha256.txt
+            dist/build_manifest.json
+            dist/source_report.json
+          retention-days: 30
